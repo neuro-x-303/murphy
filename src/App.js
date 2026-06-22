@@ -45,6 +45,56 @@ const HuggingFaceLogo = () => (
   </svg>
 );
 
+// Helper icons for dynamic features rendering
+const FEATURE_ICONS = ['∞', 'λ', '⚡', '⚙', '✦', '❖', '◈', '◇'];
+
+// Custom partner logos configuration
+const PARTNER_LOGOS = [
+  { node: <div className="logo-item-wrapper"><OpenAILogo /><span>OpenAI</span></div>, href: "https://openai.com" },
+  { node: <div className="logo-item-wrapper"><GeminiLogo /><span>Gemini</span></div>, href: "https://deepmind.google/technologies/gemini" },
+  { node: <div className="logo-item-wrapper"><ClaudeLogo /><span>Claude</span></div>, href: "https://anthropic.com" },
+  { node: <div className="logo-item-wrapper"><MetaLogo /><span>Llama</span></div>, href: "https://meta.com" },
+  { node: <div className="logo-item-wrapper"><MistralLogo /><span>Mistral</span></div>, href: "https://mistral.ai" },
+  { node: <div className="logo-item-wrapper"><HuggingFaceLogo /><span>HuggingFace</span></div>, href: "https://huggingface.co" }
+];
+
+// Static configuration for Hyperspeed WebGL background to prevent context recreation
+const HYPERSPEED_OPTIONS = {
+  distortion: 'turbulentDistortion',
+  length: 400,
+  roadWidth: 10,
+  islandWidth: 2,
+  lanesPerRoad: 4,
+  fov: 90,
+  fovSpeedUp: 150,
+  speedUp: 3.5,
+  carLightsFade: 0.4,
+  totalSideLightSticks: 20,
+  lightPairsPerRoadWay: 40,
+  shoulderLinesWidthPercentage: 0.05,
+  brokenLinesWidthPercentage: 0.1,
+  brokenLinesLengthPercentage: 0.5,
+  lightStickWidth: [0.12, 0.5],
+  lightStickHeight: [1.3, 1.7],
+  movingAwaySpeed: [60, 80],
+  movingCloserSpeed: [-120, -160],
+  carLightsLength: [12, 80],
+  carLightsRadius: [0.05, 0.14],
+  carWidthPercentage: [0.3, 0.5],
+  carShiftX: [-0.8, 0.8],
+  carFloorSeparation: [0, 5],
+  colors: {
+    roadColor: 0x050505,
+    islandColor: 0x070707,
+    background: 0x000000,
+    shoulderLines: 0x555555,
+    brokenLines: 0x555555,
+    leftCars: [0xD856BF, 0x6750A2, 0xC247AC], // Magenta / Violet
+    rightCars: [0x03B3C3, 0x0E5EA5, 0x324555], // Cyan / Deep Blue
+    sticks: 0x03B3C3
+  }
+};
+
 function App() {
   // Waitlist form state
   const [waitlistEmail, setWaitlistEmail] = useState('');
@@ -101,61 +151,11 @@ function App() {
     container.style.setProperty('--mouse-y', '0');
   };
 
-  // Helper icons for dynamic features rendering
-  const featureIcons = ['∞', 'λ', '⚡', '⚙', '✦', '❖', '◈', '◇'];
-
-
-
-  const partnerLogos = [
-    { node: <div className="logo-item-wrapper"><OpenAILogo /><span>OpenAI</span></div>, href: "https://openai.com" },
-    { node: <div className="logo-item-wrapper"><GeminiLogo /><span>Gemini</span></div>, href: "https://deepmind.google/technologies/gemini" },
-    { node: <div className="logo-item-wrapper"><ClaudeLogo /><span>Claude</span></div>, href: "https://anthropic.com" },
-    { node: <div className="logo-item-wrapper"><MetaLogo /><span>Llama</span></div>, href: "https://meta.com" },
-    { node: <div className="logo-item-wrapper"><MistralLogo /><span>Mistral</span></div>, href: "https://mistral.ai" },
-    { node: <div className="logo-item-wrapper"><HuggingFaceLogo /><span>HuggingFace</span></div>, href: "https://huggingface.co" }
-  ];
-
   return (
     <div className="app-container">
       {/* Background Hyperspeed WebGL component */}
       <div className="background-wrapper">
-        <Hyperspeed 
-          effectOptions={{
-            distortion: 'turbulentDistortion',
-            length: 400,
-            roadWidth: 10,
-            islandWidth: 2,
-            lanesPerRoad: 4,
-            fov: 90,
-            fovSpeedUp: 150,
-            speedUp: 3.5,
-            carLightsFade: 0.4,
-            totalSideLightSticks: 20,
-            lightPairsPerRoadWay: 40,
-            shoulderLinesWidthPercentage: 0.05,
-            brokenLinesWidthPercentage: 0.1,
-            brokenLinesLengthPercentage: 0.5,
-            lightStickWidth: [0.12, 0.5],
-            lightStickHeight: [1.3, 1.7],
-            movingAwaySpeed: [60, 80],
-            movingCloserSpeed: [-120, -160],
-            carLightsLength: [12, 80],
-            carLightsRadius: [0.05, 0.14],
-            carWidthPercentage: [0.3, 0.5],
-            carShiftX: [-0.8, 0.8],
-            carFloorSeparation: [0, 5],
-            colors: {
-              roadColor: 0x050505,
-              islandColor: 0x070707,
-              background: 0x000000,
-              shoulderLines: 0x555555,
-              brokenLines: 0x555555,
-              leftCars: [0xD856BF, 0x6750A2, 0xC247AC], // Magenta / Violet
-              rightCars: [0x03B3C3, 0x0E5EA5, 0x324555], // Cyan / Deep Blue
-              sticks: 0x03B3C3
-            }
-          }}
-        />
+        <Hyperspeed effectOptions={HYPERSPEED_OPTIONS} />
       </div>
 
       {/* Dynamic Toast Notification */}
@@ -234,7 +234,7 @@ function App() {
           <div className="hero-logos-container">
             <p className="logo-loop-title">POWERING NEXT-GENERATION INTEGRATIONS</p>
             <LogoLoop
-              logos={partnerLogos}
+              logos={PARTNER_LOGOS}
               speed={40}
               direction="left"
               logoHeight={26}
@@ -294,7 +294,7 @@ function App() {
                   >
                     <div className="card-overlay"></div>
                     <div className={`feature-icon ${isEven ? 'icon-pink' : 'icon-cyan'}`}>
-                      {featureIcons[index % featureIcons.length]}
+                      {FEATURE_ICONS[index % FEATURE_ICONS.length]}
                     </div>
                     <h3 className="floating-card-title">{item.title}</h3>
                     <p className="floating-card-description">{item.description}</p>
