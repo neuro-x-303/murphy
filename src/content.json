@@ -1,0 +1,81 @@
+{
+  "name": "Murphy",
+  "version": "1.0.0",
+  "hero": {
+    "title": "The Complete AI Platform for Building the Future",
+    "subtitle": "Build, integrate, automate, and deploy AI from one powerful platform. Murphy brings together AI models, intelligent agents, workflows, APIs, prompts, and developer tools into a single ecosystem.",
+    "primaryButton": "Get Started",
+    "secondaryButton": "Explore Platform"
+  },
+  "about": {
+    "title": "What is Murphy?",
+    "description": "Murphy is a unified AI ecosystem built for developers, businesses, startups, creators, students, and enterprises. Whether you need an AI chatbot, image generation, document processing, workflow automation, or AI integration for your application, Murphy provides everything you need in one place. Connect your preferred AI provider or use Murphy AI to build intelligent solutions faster."
+  },
+  "features": {
+    "title": "Everything You Need to Build with AI",
+    "items": [
+      {
+        "title": "Murphy AI",
+        "description": "An intelligent assistant for reasoning, coding, research, writing, planning, and problem solving."
+      },
+      {
+        "title": "AI Model Hub",
+        "description": "Access multiple AI providers through one unified interface."
+      },
+      {
+        "title": "AI Agents",
+        "description": "Create autonomous AI agents capable of completing complex tasks."
+      },
+      {
+        "title": "Prompt Library",
+        "description": "Discover, organize, and reuse professional prompts for every workflow."
+      },
+      {
+        "title": "Image Generation",
+        "description": "Generate, edit, enhance, and transform images using modern AI models."
+      },
+      {
+        "title": "Document Intelligence",
+        "description": "Summarize, analyze, translate, generate, and understand PDFs and documents."
+      },
+      {
+        "title": "Workflow Automation",
+        "description": "Build intelligent workflows that automate repetitive tasks."
+      },
+      {
+        "title": "Developer Platform",
+        "description": "Integrate AI into websites, applications, and services with powerful APIs and SDKs."
+      }
+    ]
+  },
+  "platform": {
+    "title": "One Platform. Unlimited Possibilities.",
+    "description": "Murphy is designed to be the central hub for artificial intelligence. Instead of switching between multiple tools, developers and organizations can manage AI models, prompts, agents, workflows, APIs, and projects from a single workspace."
+  },
+  "integrations": {
+    "title": "Bring Your Own AI",
+    "description": "Use your own API keys or connect supported AI providers to power every Murphy feature with the model that best fits your needs."
+  },
+  "developers": {
+    "title": "Built for Developers",
+    "description": "Create AI-powered applications with APIs, SDKs, templates, documentation, and reusable components that reduce development time."
+  },
+  "security": {
+    "title": "Privacy & Security",
+    "description": "Your API keys, projects, and data remain under your control. Murphy is designed with secure integrations, encrypted communication, and privacy-first principles."
+  },
+  "vision": {
+    "title": "Our Vision",
+    "description": "To create the world's most complete AI ecosystem where anyone can build, integrate, learn, and deploy artificial intelligence without unnecessary complexity."
+  },
+  "cta": {
+    "title": "Start Building with Murphy",
+    "description": "Join developers, creators, and businesses building the next generation of AI-powered applications.",
+    "primaryButton": "Start Free",
+    "secondaryButton": "View Documentation"
+  },
+  "footer": {
+    "tagline": "Murphy • Build. Integrate. Automate.",
+    "copyright": "© 2026 Murphy. All rights reserved."
+  }
+}
