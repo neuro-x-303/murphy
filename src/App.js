@@ -1,10 +1,18 @@
 import React, { useState, useEffect } from 'react';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import './App.css';
 import Hyperspeed from './Hyperspeed';
 import LogoLoop from './LogoLoop';
+import Dashboard from './Dashboard';
 import content from './content.json';
 import { 
-  addWaitlistSubscriber 
+  signUpUser,
+  signInUser,
+  signInWithGoogle,
+  resetPassword,
+  signOutUser,
+  subscribeToAuthChanges,
+  auth
 } from './firebase';
 
 // Custom Premium Inline SVGs for LogoLoop partners
@@ -96,15 +104,146 @@ const HYPERSPEED_OPTIONS = {
 };
 
 function App() {
-  // Waitlist form state
-  const [waitlistEmail, setWaitlistEmail] = useState('');
-  const [waitlistStatus, setWaitlistStatus] = useState({ type: '', message: '' });
-  
+  const navigate = useNavigate();
+
   // Custom toast notification state
   const [toast, setToast] = useState({ show: false, type: '', message: '' });
 
   // Mobile menu open state
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Auth states
+  const [user, setUser] = useState(null);
+  const [authMode, setAuthMode] = useState('signin'); // 'signin' or 'signup'
+  const [authName, setAuthName] = useState('');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authConfirmPassword, setAuthConfirmPassword] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+
+  // Subscribe to authentication state changes
+  useEffect(() => {
+    const unsubscribe = subscribeToAuthChanges((currentUser) => {
+      setUser(currentUser);
+      if (currentUser && currentUser.emailVerified) {
+        navigate('/dashboard', { replace: true });
+      }
+    });
+    return () => unsubscribe();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleAuthSubmit = async (e) => {
+    e.preventDefault();
+    setAuthError('');
+    
+    if (!authEmail.trim()) {
+      setAuthError('Email address is required.');
+      return;
+    }
+    if (!authPassword) {
+      setAuthError('Password is required.');
+      return;
+    }
+    if (authMode === 'signup' && authPassword !== authConfirmPassword) {
+      setAuthError('Passwords do not match.');
+      return;
+    }
+
+    setAuthLoading(true);
+    try {
+      if (authMode === 'signin') {
+        await signInUser(authEmail.trim(), authPassword);
+        setToast({ show: true, type: 'success', message: 'Authorized secure node session.' });
+      } else {
+        await signUpUser(authEmail.trim(), authPassword, authName.trim());
+        setToast({ show: true, type: 'success', message: 'Initialized new node on network.' });
+      }
+      setAuthName('');
+      setAuthEmail('');
+      setAuthPassword('');
+      setAuthConfirmPassword('');
+    } catch (err) {
+      let message = err.message;
+      if (
+        err.code === 'auth/user-not-found' || 
+        err.code === 'auth/wrong-password' || 
+        err.code === 'auth/invalid-credential'
+      ) {
+        message = 'Invalid email or password credentials.';
+      } else if (err.code === 'auth/email-already-in-use') {
+        message = 'This email address is already registered.';
+      } else if (err.code === 'auth/weak-password') {
+        message = 'Password must be at least 6 characters.';
+      } else if (err.code === 'auth/invalid-email') {
+        message = 'Please enter a valid email address.';
+      }
+      setAuthError(message);
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setAuthError('');
+    try {
+      await signInWithGoogle();
+      setToast({ show: true, type: 'success', message: 'Authorized secure node session via Google.' });
+    } catch (err) {
+      if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') {
+        setAuthError('Google Sign-In failed: ' + err.message);
+      }
+    }
+  };
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    if (!authEmail) {
+      setAuthError('Please enter your email address.');
+      return;
+    }
+    setAuthLoading(true);
+    setAuthError('');
+    try {
+      await resetPassword(authEmail);
+      setToast({ show: true, type: 'success', message: 'Password reset email sent! Check your inbox.' });
+      setAuthMode('signin');
+      setAuthEmail('');
+    } catch (err) {
+      if (err.code === 'auth/user-not-found') {
+        setAuthError('No account found with this email address.');
+      } else if (err.code === 'auth/invalid-email') {
+        setAuthError('Please enter a valid email address.');
+      } else {
+        setAuthError(err.message);
+      }
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOutUser();
+      setToast({ show: true, type: 'success', message: 'Disconnected secure session.' });
+    } catch (err) {
+      setToast({ show: true, type: 'error', message: `Disconnection failed: ${err.message}` });
+    }
+  };
+
+  const openAuthModal = (mode) => {
+    setAuthMode(mode);
+    setAuthError('');
+    setAuthName('');
+    setAuthEmail('');
+    setAuthPassword('');
+    setAuthConfirmPassword('');
+    const element = document.getElementById('waitlist');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
 
   // Auto-hide toast after 4 seconds
   useEffect(() => {
@@ -116,25 +255,7 @@ function App() {
     }
   }, [toast.show]);
 
-  // Handle email waitlist sign up
-  const handleWaitlistSubmit = async (e) => {
-    e.preventDefault();
-    const email = waitlistEmail.trim();
-    if (!email) return;
-
-    setWaitlistStatus({ type: 'loading', message: 'Syncing with Go Infinity database...' });
-
-    try {
-      await addWaitlistSubscriber(email);
-      setWaitlistStatus({ type: 'success', message: 'Authorization complete! Welcome to the waitlist.' });
-      setWaitlistEmail('');
-      setToast({ show: true, type: 'success', message: `Subscriber node registered: ${email}` });
-    } catch (error) {
-      setWaitlistStatus({ type: 'error', message: `Sync failed: ${error.message}` });
-    }
-  };
-
-  // Mousemove parallax handlers for floating features cloud
+// Mousemove parallax handlers for floating features cloud
   const handleMouseMove = (e) => {
     const container = e.currentTarget;
     const rect = container.getBoundingClientRect();
@@ -152,6 +273,13 @@ function App() {
   };
 
   return (
+    <Routes>
+      <Route path="/dashboard" element={
+        user && user.emailVerified
+          ? <Dashboard user={user} handleSignOut={handleSignOut} />
+          : <Navigate to="/" replace />
+      } />
+      <Route path="/" element={(
     <div className="app-container">
       {/* Background Hyperspeed WebGL component */}
       <div className="background-wrapper">
@@ -181,7 +309,14 @@ function App() {
             <a href="#about" className="nav-item-link">About</a>
             <a href="#features" className="nav-item-link">Features</a>
             <a href="#platform" className="nav-item-link">Capabilities</a>
-            <a href="#waitlist" className="cta-btn-header">Join Waitlist</a>
+            {user ? (
+              <div className="user-profile-capsule">
+                <span className="user-email" title={user.email}>{user.email}</span>
+                <button onClick={handleSignOut} className="signout-btn">Sign Out</button>
+              </div>
+            ) : (
+              <button onClick={() => openAuthModal('signin')} className="cta-btn-header highlight-header-btn">Login</button>
+            )}
           </nav>
 
           {/* Mobile Hamburger Toggle */}
@@ -201,7 +336,24 @@ function App() {
           <a href="#about" className="mobile-nav-item" onClick={() => setMobileMenuOpen(false)}>About</a>
           <a href="#features" className="mobile-nav-item" onClick={() => setMobileMenuOpen(false)}>Features</a>
           <a href="#platform" className="mobile-nav-item" onClick={() => setMobileMenuOpen(false)}>Capabilities</a>
-          <a href="#waitlist" className="mobile-cta-btn" onClick={() => setMobileMenuOpen(false)}>Join Waitlist</a>
+          {user ? (
+            <div className="mobile-user-capsule">
+              <span className="mobile-user-email" title={user.email}>{user.email}</span>
+              <button 
+                onClick={() => { handleSignOut(); setMobileMenuOpen(false); }} 
+                className="mobile-signout-btn"
+              >
+                Sign Out
+              </button>
+            </div>
+          ) : (
+            <button 
+              onClick={() => { openAuthModal('signin'); setMobileMenuOpen(false); }} 
+              className="mobile-cta-btn highlight-mobile-btn"
+            >
+              Login
+            </button>
+          )}
         </div>
       </header>
       {/* Main Content Layout */}
@@ -344,36 +496,252 @@ function App() {
           </div>
         </section>
 
-        {/* Waitlist Access Section */}
+        {/* Waitlist / Authentication Section */}
         <section className="waitlist-section" id="waitlist">
           <div className="waitlist-card">
             <h2 className="waitlist-title">{content.cta.title}</h2>
             <p className="waitlist-subtitle">
               {content.cta.description}
             </p>
-            
-            <form onSubmit={handleWaitlistSubmit} className="waitlist-form">
-              <input
-                type="email"
-                required
-                placeholder="Secure Node Email Address..."
-                value={waitlistEmail}
-                onChange={(e) => setWaitlistEmail(e.target.value)}
-                className="waitlist-input"
-                id="waitlist-email-input"
-              />
-              <button 
-                type="submit" 
-                className="waitlist-btn"
-                id="waitlist-submit-btn"
-              >
-                {content.cta.primaryButton.toUpperCase()}
-              </button>
-            </form>
 
-            {waitlistStatus.message && (
-              <div className={`status-banner status-${waitlistStatus.type}`}>
-                {waitlistStatus.message}
+            {user ? (
+              user.emailVerified ? (
+                <div className="authenticated-node-panel">
+                  <div className="auth-status-indicator">
+                    <span className="status-pulse-green"></span>
+                    <h3>SECURE NODE CONNECTED</h3>
+                  </div>
+                  <div className="node-details-box">
+                    <div className="node-detail-row">
+                      <span className="node-label">IDENTITY:</span>
+                      <span className="node-value" style={{ textTransform: 'capitalize' }}>{user.displayName || user.email}</span>
+                    </div>
+                    {user.displayName && (
+                      <div className="node-detail-row">
+                        <span className="node-label">EMAIL:</span>
+                        <span className="node-value" style={{ textTransform: 'lowercase' }}>{user.email}</span>
+                      </div>
+                    )}
+                    <div className="node-detail-row">
+                      <span className="node-label">STATUS:</span>
+                      <span className="node-value status-active">ACTIVE / ONLINE</span>
+                    </div>
+                  </div>
+                  <button onClick={handleSignOut} className="node-disconnect-btn">
+                    DISCONNECT SECURE SESSION
+                  </button>
+                </div>
+              ) : (
+                <div className="authenticated-node-panel">
+                  <div className="auth-status-indicator">
+                    <span className="status-pulse-orange" style={{ background: 'orange', boxShadow: '0 0 10px orange' }}></span>
+                    <h3 style={{ color: 'orange' }}>VERIFICATION PENDING</h3>
+                  </div>
+                  <div className="node-details-box">
+                    <div className="node-detail-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '0.5rem' }}>
+                      <span className="node-label">ACTION REQUIRED:</span>
+                      <span className="node-value" style={{ textTransform: 'none', lineHeight: '1.4' }}>
+                        A verification link has been sent to <strong style={{ color: 'var(--color-cyan)' }}>{user.email}</strong>. 
+                        Please verify your email address to access the secure network.
+                      </span>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', flexWrap: 'wrap' }}>
+                    <button 
+                      onClick={async () => {
+                        try {
+                          await auth.currentUser.reload();
+                          setUser({ ...auth.currentUser });
+                          if (auth.currentUser.emailVerified) {
+                            setToast({ show: true, type: 'success', message: 'Email verified successfully.' });
+                          } else {
+                            setToast({ show: true, type: 'error', message: 'Email is still not verified. Please check your inbox and spam folder.' });
+                          }
+                        } catch (err) {
+                          console.error(err);
+                        }
+                      }} 
+                      className="waitlist-btn"
+                      style={{ flex: 1 }}
+                    >
+                      I HAVE VERIFIED
+                    </button>
+                    <button 
+                      onClick={async () => {
+                        try {
+                          const { sendEmailVerification } = await import('firebase/auth');
+                          await sendEmailVerification(auth.currentUser);
+                          setToast({ show: true, type: 'success', message: 'Verification email resent! Check your inbox and spam folder.' });
+                        } catch (err) {
+                          console.error(err);
+                          if (err.code === 'auth/too-many-requests') {
+                            setToast({ show: true, type: 'error', message: 'Too many requests. Please wait a bit before resending.' });
+                          } else {
+                            setToast({ show: true, type: 'error', message: 'Failed to resend email. Try again later.' });
+                          }
+                        }
+                      }} 
+                      className="waitlist-btn"
+                      style={{ flex: 1, background: 'rgba(255, 165, 0, 0.2)', border: '1px solid rgba(255, 165, 0, 0.5)' }}
+                    >
+                      RESEND EMAIL
+                    </button>
+                    <button 
+                      onClick={handleSignOut} 
+                      className="node-disconnect-btn"
+                      style={{ flex: 1 }}
+                    >
+                      DISCONNECT
+                    </button>
+                  </div>
+                </div>
+              )
+            ) : (
+              <div className="inline-auth-container">
+                <div className="inline-auth-tabs">
+                  <button 
+                    className={`inline-auth-tab ${authMode === 'signup' ? 'active-inline-tab' : ''}`}
+                    onClick={() => { setAuthMode('signup'); setAuthError(''); setAuthName(''); }}
+                  >
+                    Create Account
+                  </button>
+                  <button 
+                    className={`inline-auth-tab ${authMode === 'signin' || authMode === 'forgot' ? 'active-inline-tab' : ''}`}
+                    onClick={() => { setAuthMode('signin'); setAuthError(''); setAuthName(''); }}
+                  >
+                    Sign In
+                  </button>
+                </div>
+
+                {authError && (
+                  <div className="auth-error-banner inline-error">
+                    <span className="error-icon">⚠</span>
+                    <span className="error-text">{authError}</span>
+                  </div>
+                )}
+
+                {authMode === 'forgot' ? (
+                  <form onSubmit={handleForgotPassword} className="inline-auth-form">
+                    <p style={{ color: '#aaa', fontSize: '0.88rem', marginBottom: '1rem', textAlign: 'center', letterSpacing: '0.05em' }}>
+                      Enter your email to receive a password reset link.
+                    </p>
+                    <div className="inline-input-wrapper">
+                      <input
+                        type="email"
+                        required
+                        placeholder="Your Email Address..."
+                        value={authEmail}
+                        onChange={(e) => setAuthEmail(e.target.value)}
+                        className="waitlist-input inline-input"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      className="waitlist-btn auth-submit-btn-inline"
+                      disabled={authLoading}
+                    >
+                      {authLoading ? 'SENDING...' : 'SEND RESET LINK'}
+                    </button>
+                    <div style={{ textAlign: 'center', marginTop: '0.75rem' }}>
+                      <button
+                        type="button"
+                        style={{ background: 'none', border: 'none', color: 'var(--color-cyan)', cursor: 'pointer', fontSize: '0.85rem', textDecoration: 'underline' }}
+                        onClick={() => { setAuthMode('signin'); setAuthError(''); }}
+                      >
+                        ← Back to Sign In
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <form onSubmit={handleAuthSubmit} className="inline-auth-form">
+                    {authMode === 'signup' && (
+                      <div className="inline-input-wrapper">
+                        <input
+                          type="text"
+                          required
+                          placeholder="Your Identity (Name)..."
+                          value={authName}
+                          onChange={(e) => setAuthName(e.target.value)}
+                          className="waitlist-input inline-input"
+                        />
+                      </div>
+                    )}
+
+                    <div className="inline-input-wrapper">
+                      <input
+                        type="email"
+                        required
+                        placeholder="Secure Email Address..."
+                        value={authEmail}
+                        onChange={(e) => setAuthEmail(e.target.value)}
+                        className="waitlist-input inline-input"
+                      />
+                    </div>
+
+                    <div className="inline-input-wrapper">
+                      <input
+                        type="password"
+                        required
+                        placeholder="Encrypted Password..."
+                        value={authPassword}
+                        onChange={(e) => setAuthPassword(e.target.value)}
+                        className="waitlist-input inline-input"
+                      />
+                    </div>
+
+                    {authMode === 'signin' && (
+                      <div style={{ textAlign: 'right', marginBottom: '0.5rem' }}>
+                        <button
+                          type="button"
+                          style={{ background: 'none', border: 'none', color: 'var(--color-cyan)', cursor: 'pointer', fontSize: '0.82rem', textDecoration: 'underline', opacity: 0.85 }}
+                          onClick={() => { setAuthMode('forgot'); setAuthError(''); }}
+                        >
+                          Forgot Password?
+                        </button>
+                      </div>
+                    )}
+
+                    {authMode === 'signup' && (
+                      <div className="inline-input-wrapper">
+                        <input
+                          type="password"
+                          required
+                          placeholder="Confirm Password..."
+                          value={authConfirmPassword}
+                          onChange={(e) => setAuthConfirmPassword(e.target.value)}
+                          className="waitlist-input inline-input"
+                        />
+                      </div>
+                    )}
+
+                    <button 
+                      type="submit" 
+                      className="waitlist-btn auth-submit-btn-inline"
+                      disabled={authLoading}
+                    >
+                      {authLoading ? 'ESTABLISHING LINK...' : (authMode === 'signin' ? 'AUTHENTICATE' : 'INITIALIZE NODE')}
+                    </button>
+
+                    <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <span style={{ color: '#aaa', fontSize: '0.9rem', letterSpacing: '0.1em' }}>OR</span>
+                    </div>
+
+                    <button 
+                      type="button" 
+                      className="waitlist-btn auth-submit-btn-inline"
+                      style={{ marginTop: '1rem', background: 'rgba(255, 255, 255, 0.05)', color: '#fff', border: '1px solid rgba(255, 255, 255, 0.2)' }}
+                      onClick={handleGoogleSignIn}
+                    >
+                      <svg viewBox="0 0 24 24" width="18" height="18" style={{ marginRight: '8px', verticalAlign: 'middle' }}>
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                      </svg>
+                      CONTINUE WITH GOOGLE
+                    </button>
+                  </form>
+                )}
               </div>
             )}
           </div>
@@ -391,6 +759,8 @@ function App() {
 
       </main>
     </div>
+      )} />
+    </Routes>
   );
 }
 

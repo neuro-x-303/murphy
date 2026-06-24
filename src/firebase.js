@@ -11,6 +11,18 @@ import {
   increment,
   onSnapshot
 } from "firebase/firestore";
+import { 
+  getAuth, 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword, 
+  signOut, 
+  onAuthStateChanged,
+  sendEmailVerification,
+  updateProfile,
+  GoogleAuthProvider,
+  signInWithPopup,
+  sendPasswordResetEmail
+} from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: "AIzaSyB6Uhyp8cywPDKeYjXA6jUSjR_GkCCoLHo",
@@ -25,6 +37,8 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
+const googleProvider = new GoogleAuthProvider();
 
 /**
  * Saves a message/inquiry sent by a user to Firestore.
@@ -109,5 +123,90 @@ export function listenToGlobalStats(callback) {
     console.error("Error listening to global stats:", error);
   });
 }
+/**
+ * Signs up a new user with email, password, and name, and creates a profile document in Firestore.
+ */
+export async function signUpUser(email, password, name) {
+  const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+  const user = userCredential.user;
+  
+  try {
+    if (name) {
+      await updateProfile(user, { displayName: name });
+    }
+    const userDocRef = doc(db, "users", user.uid);
+    await setDoc(userDocRef, {
+      uid: user.uid,
+      email: user.email,
+      name: name || "",
+      createdAt: serverTimestamp(),
+      status: "active"
+    });
+    
+    // Send email verification
+    await sendEmailVerification(user);
+  } catch (error) {
+    console.error("Error saving user profile to Firestore:", error);
+    throw error;
+  }
+  
+  return userCredential;
+}
 
-export { db };
+/**
+ * Signs in user with Google and saves profile to Firestore if new.
+ */
+export async function signInWithGoogle() {
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    const user = result.user;
+    
+    // Ensure user profile exists in Firestore
+    const userDocRef = doc(db, "users", user.uid);
+    const userDocSnap = await getDoc(userDocRef);
+    
+    if (!userDocSnap.exists()) {
+      await setDoc(userDocRef, {
+        uid: user.uid,
+        email: user.email,
+        name: user.displayName || "",
+        createdAt: serverTimestamp(),
+        status: "active"
+      });
+    }
+    return result;
+  } catch (error) {
+    console.error("Error during Google Sign In:", error);
+    throw error;
+  }
+}
+
+/**
+ * Signs in an existing user with email and password.
+ */
+export function signInUser(email, password) {
+  return signInWithEmailAndPassword(auth, email, password);
+}
+
+/**
+ * Signs out the currently authenticated user.
+ */
+export function signOutUser() {
+  return signOut(auth);
+}
+
+/**
+ * Subscribes to changes in the user's sign-in state.
+ */
+export function subscribeToAuthChanges(callback) {
+  return onAuthStateChanged(auth, callback);
+}
+
+/**
+ * Sends a password reset email to the given email address.
+ */
+export async function resetPassword(email) {
+  return sendPasswordResetEmail(auth, email);
+}
+
+export { db, auth };
