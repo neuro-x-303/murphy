@@ -296,8 +296,8 @@ function App() {
       {/* Premium Fixed Navigation Header */}
       <header className={`navbar-fixed ${mobileMenuOpen ? 'menu-open' : ''}`}>
         <div className="navbar-container">
-          <div className="navbar-logo">
-            <span className="logo-icon-pulse">∞</span>
+          <div className="navbar-logo" style={{ display: 'flex', alignItems: 'center' }}>
+            <img src="/murphylogo.png" alt="Murphy Logo" style={{ width: '28px', height: '28px', marginRight: '10px', objectFit: 'contain' }} />
             <div className="logo-brand-info">
               <span className="logo-brand-title">MURPHY</span>
               <span className="logo-brand-subtitle">BY VERTEX HALEX</span>

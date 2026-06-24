@@ -208,7 +208,10 @@ const Dashboard = ({ user, handleSignOut }) => {
 
       {/* ── Mobile topbar ── */}
       <div className="dashboard-topbar">
-        <span className="topbar-logo">Murphy</span>
+        <span className="topbar-logo" style={{ display: 'flex', alignItems: 'center' }}>
+          <img src="/murphylogo.png" alt="Murphy Logo" style={{ width: '22px', height: '22px', marginRight: '8px', objectFit: 'contain' }} />
+          Murphy
+        </span>
         <button
           className={`hamburger-btn ${sidebarOpen ? 'open' : ''}`}
           onClick={() => setSidebarOpen(prev => !prev)}
@@ -229,7 +232,10 @@ const Dashboard = ({ user, handleSignOut }) => {
       {/* ── Sidebar ── */}
       <aside className={`dashboard-sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
-          <div className="sidebar-logo">Murphy</div>
+          <div className="sidebar-logo" style={{ display: 'flex', alignItems: 'center' }}>
+            <img src="/murphylogo.png" alt="Murphy Logo" style={{ width: '24px', height: '24px', marginRight: '8px', objectFit: 'contain' }} />
+            Murphy
+          </div>
           <div className="sidebar-user-badge">Verified Node</div>
         </div>
 
