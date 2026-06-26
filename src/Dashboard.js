@@ -177,6 +177,9 @@ const Dashboard = ({ user, handleSignOut }) => {
     e.preventDefault();
     if (!inputText.trim()) return;
 
+    const userMessageCount = messages.filter(msg => msg.role === 'user').length;
+    if (userMessageCount >= 5) return;
+
     const userMessage = { role: 'user', content: inputText.trim() };
     setMessages(prev => [...prev, userMessage]);
     setInputText('');
@@ -370,18 +373,31 @@ const Dashboard = ({ user, handleSignOut }) => {
                     )}
                     <div ref={chatEndRef} />
                   </div>
-                  <form className="chat-input-form" onSubmit={handleChatSubmit}>
-                    <input 
-                      type="text" 
-                      value={inputText}
-                      onChange={(e) => setInputText(e.target.value)}
-                      placeholder="Message Murphy..."
-                      disabled={isChatLoading}
-                    />
-                    <button type="submit" disabled={!inputText.trim() || isChatLoading}>
-                      Send
-                    </button>
-                  </form>
+                  {messages.filter(msg => msg.role === 'user').length >= 5 ? (
+                    <div className="premium-upgrade-container">
+                      <div className="premium-upgrade-card">
+                        <span className="premium-shield-icon">✦</span>
+                        <h3>Free Limit Reached</h3>
+                        <p>You have successfully completed 5 complimentary interactions with Murphy AI.</p>
+                        <button className="upgrade-premium-btn" onClick={() => alert('Premium plan subscriptions are coming soon!')}>
+                          Try Premium
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <form className="chat-input-form" onSubmit={handleChatSubmit}>
+                      <input 
+                        type="text" 
+                        value={inputText}
+                        onChange={(e) => setInputText(e.target.value)}
+                        placeholder="Message Murphy..."
+                        disabled={isChatLoading}
+                      />
+                      <button type="submit" disabled={!inputText.trim() || isChatLoading}>
+                        Send
+                      </button>
+                    </form>
+                  )}
                 </div>
               )}
             </div>
