@@ -7,6 +7,8 @@ import Hyperspeed from './Hyperspeed';
 import { PluginManager } from './managers/PluginManager';
 import { LoggingManager } from './managers/LoggingManager';
 import { SettingsManager } from './managers/SettingsManager';
+import { db } from './firebase';
+import { doc, getDoc, setDoc, increment } from 'firebase/firestore';
 
 const dashboardBgConfig = {
   onSpeedUp: () => { },
@@ -152,9 +154,34 @@ const Dashboard = ({ user, handleSignOut }) => {
   const [connectError, setConnectError] = useState("");
   const [connecting, setConnecting] = useState(false);
 
+  // Firestore user message count state for strict 5-request quota
+  const [dbMessageCount, setDbMessageCount] = useState(0);
+
   // Loader effects for Settings, Plugins, Logs
   const loadPhase1Data = async () => {
     if (!user) return;
+
+    // Load user quota count
+    try {
+      const userDocRef = doc(db, "users", user.uid);
+      const docSnap = await getDoc(userDocRef);
+      if (docSnap.exists()) {
+        setDbMessageCount(docSnap.data().messageCount || 0);
+      } else {
+        // Create user document with 0 count if missing
+        await setDoc(userDocRef, {
+          uid: user.uid,
+          email: user.email,
+          name: user.displayName || "",
+          createdAt: new Date(),
+          status: "active",
+          messageCount: 0
+        }, { merge: true });
+        setDbMessageCount(0);
+      }
+    } catch (err) {
+      console.error("Dashboard: Quota query failure", err);
+    }
     
     // Load Settings
     setSettingsLoading(true);
@@ -599,8 +626,7 @@ const Dashboard = ({ user, handleSignOut }) => {
     e.preventDefault();
     if (!inputText.trim()) return;
 
-    const userMessageCount = messages.filter(msg => msg.role === 'user').length;
-    if (userMessageCount >= 5) return;
+    if (dbMessageCount >= 5) return;
 
     const userMessage = { role: 'user', content: inputText.trim() };
     setMessages(prev => [...prev, userMessage]);
@@ -608,6 +634,11 @@ const Dashboard = ({ user, handleSignOut }) => {
     setIsChatLoading(true);
 
     try {
+      // Increment quota count in Firestore
+      const userDocRef = doc(db, "users", user.uid);
+      await setDoc(userDocRef, { messageCount: increment(1) }, { merge: true });
+      setDbMessageCount(prev => prev + 1);
+
       const { data, error } = await supabase.functions.invoke('gemini-chat', {
         body: { message: userMessage.content }
       });
@@ -795,7 +826,7 @@ const Dashboard = ({ user, handleSignOut }) => {
                     )}
                     <div ref={chatEndRef} />
                   </div>
-                  {messages.filter(msg => msg.role === 'user').length >= 5 ? (
+                  {dbMessageCount >= 5 ? (
                     <div className="premium-upgrade-container">
                       <div className="premium-upgrade-card">
                         <span className="premium-shield-icon">✦</span>
