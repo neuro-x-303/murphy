@@ -410,6 +410,47 @@ function App() {
           </div>
         </section>
 
+        {/* Murphy Luma 1 Showcase Section */}
+        <section className="luma-showcase-section" id="luma-showcase">
+          <div className="luma-card">
+            <div className="glow-edge"></div>
+            
+            {/* Left Column: Text Content */}
+            <div className="luma-text-content">
+              <span className="luma-badge">
+                Introducing Murphy Luma 1
+              </span>
+              <h2 className="luma-title">
+                Luminating imaginations
+              </h2>
+              <p className="luma-description">
+                Murphy Luma 1 is our flagship ultra-fast AI image generation model. Create high-fidelity, photorealistic artwork, designs, and visual assets instantly from simple natural language prompts at blazing speeds.
+              </p>
+              <a 
+                href="https://murphy-luma.vertexhalex.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="glow-btn pink-neon"
+                style={{ alignSelf: 'flex-start', marginTop: '0.5rem', display: 'inline-block' }}
+              >
+                Try Murphy Luma 1
+              </a>
+            </div>
+            
+            {/* Right Column: Video player */}
+            <div className="luma-video-container">
+              <video 
+                src="/luma1.mp4" 
+                autoPlay 
+                loop 
+                muted 
+                playsInline
+                className="luma-video"
+              />
+            </div>
+          </div>
+        </section>
+
         {/* Features Floating Cloud Section */}
         <section className="features-section" id="features">
           <h2 className="section-title">{content.features.title}</h2>
